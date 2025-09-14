@@ -2,7 +2,11 @@ package com.ticketsystem.payment.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.ticketsystem.msbooking.client.api.BookingResourceMsbookingApi;
+import com.ticketsystem.msnotification.client.api.NotificationResourceMsnotificationApi;
+import com.ticketsystem.mspayment.client.api.PaymentResourceMspaymentApi;
 import com.ticketsystem.msroute.client.api.RouteResourceMsrouteApi;
+import com.ticketsystem.msuser.client.api.UserResourceMsuserApi;
 
 import feign.Feign;
 import feign.Logger;
@@ -63,10 +67,38 @@ public class FeignClientConfiguration {
 
     @Bean
     @Lazy
-    public RouteResourceMsrouteApi routeResourceMsrouteApi(RequestInterceptor auth, Encoder enc, Decoder dec) {
+    public RouteResourceMsrouteApi routeResourceMsrouteApi(
+            RequestInterceptor auth, Encoder enc, Decoder dec) {
         return lazyFeignFor("msroute", RouteResourceMsrouteApi.class, auth, enc, dec);
     }
 
+    @Bean
+    @Lazy
+    public BookingResourceMsbookingApi bookingResourceMsbookingApi(
+            RequestInterceptor auth, Encoder enc, Decoder dec) {
+        return lazyFeignFor("msbooking", BookingResourceMsbookingApi.class, auth, enc, dec);
+    }
+
+    @Bean
+    @Lazy
+    public NotificationResourceMsnotificationApi notificationResourceMsnotificationApi(
+            RequestInterceptor auth, Encoder enc, Decoder dec) {
+        return lazyFeignFor("msnotification", NotificationResourceMsnotificationApi.class, auth, enc, dec);
+    }
+
+    @Bean
+    @Lazy
+    public PaymentResourceMspaymentApi paymentResourceMspaymentApi(
+            RequestInterceptor auth, Encoder enc, Decoder dec) {
+        return lazyFeignFor("mspayment", PaymentResourceMspaymentApi.class, auth, enc, dec);
+    }
+
+    @Bean
+    @Lazy
+    public UserResourceMsuserApi userResourceMsuserApi(
+            RequestInterceptor auth, Encoder enc, Decoder dec) {
+        return lazyFeignFor("msuser", UserResourceMsuserApi.class, auth, enc, dec);
+    }
 
 
     // === Lazy proxy factory ===
