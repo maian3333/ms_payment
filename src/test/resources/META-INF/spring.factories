@@ -1,0 +1,4 @@
+org.springframework.test.context.ContextCustomizerFactory = \
+    com.ticketsystem.payment.config.\
+    SqlTestContainersSpringContextCustomizerFactory,com.ticketsystem.payment.\
+    config.KafkaTestContainersSpringContextCustomizerFactory
