@@ -2,16 +2,11 @@
   "annotations": {
     "changelogDate": "20250831164512"
   },
-  "applications": ["gateway", "ms_payment"],
+  "applications": ["ms_payment"],
   "clientRootFolder": "ms_payment",
   "databaseType": "sql",
   "dto": "mapstruct",
   "fields": [
-    {
-      "fieldName": "id",
-      "fieldType": "UUID",
-      "fieldValidateRules": ["required"]
-    },
     {
       "fieldName": "bookingId",
       "fieldType": "UUID",
@@ -41,24 +36,26 @@
       "fieldName": "status",
       "fieldType": "PaymentStatus",
       "fieldValidateRules": ["required"],
-      "fieldValues": "PENDING,COMPLETED,FAILED,REFUNDED"
+      "fieldValues": "PENDING,PROCESSING,COMPLETED,FAILED,CANCELLED,REFUNDED"
     },
     {
-      "fieldName": "transactionId",
-      "fieldType": "String",
-      "fieldValidateRules": ["unique"]
+      "fieldName": "gatewayTransactionId",
+      "fieldType": "String"
     },
     {
-      "fieldName": "paymentGatewayResponse",
+      "fieldName": "gatewayResponse",
       "fieldType": "TextBlob"
     },
     {
-      "fieldName": "createdAt",
-      "fieldType": "Instant",
-      "fieldValidateRules": ["required"]
+      "fieldName": "paidAt",
+      "fieldType": "Instant"
     },
     {
-      "fieldName": "updatedAt",
+      "fieldName": "refundableUntil",
+      "fieldType": "Instant"
+    },
+    {
+      "fieldName": "createdAt",
       "fieldType": "Instant",
       "fieldValidateRules": ["required"]
     }
@@ -67,7 +64,15 @@
   "microserviceName": "ms_payment",
   "name": "Payment",
   "pagination": "infinite-scroll",
-  "relationships": [],
+  "relationships": [
+    {
+      "otherEntityName": "refund",
+      "otherEntityRelationshipName": "payment",
+      "relationshipName": "refunds",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    }
+  ],
   "searchEngine": "no",
   "service": "serviceImpl"
 }

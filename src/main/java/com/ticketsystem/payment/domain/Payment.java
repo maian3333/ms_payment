@@ -1,11 +1,14 @@
 package com.ticketsystem.payment.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.ticketsystem.payment.domain.enumeration.PaymentStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
@@ -23,12 +26,10 @@ public class Payment implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @NotNull
     @Id
-    @GeneratedValue
-    @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(name = "id", length = 36, nullable = false)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
 
     @NotNull
     @JdbcTypeCode(SqlTypes.VARCHAR)
@@ -57,33 +58,40 @@ public class Payment implements Serializable {
     @Column(name = "status", nullable = false)
     private PaymentStatus status;
 
-    @Column(name = "transaction_id", unique = true)
-    private String transactionId;
+    @Column(name = "gateway_transaction_id")
+    private String gatewayTransactionId;
 
     @Lob
-    @Column(name = "payment_gateway_response")
-    private String paymentGatewayResponse;
+    @Column(name = "gateway_response")
+    private String gatewayResponse;
+
+    @Column(name = "paid_at")
+    private Instant paidAt;
+
+    @Column(name = "refundable_until")
+    private Instant refundableUntil;
 
     @NotNull
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @NotNull
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "payment")
+    @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+    @JsonIgnoreProperties(value = { "payment" }, allowSetters = true)
+    private Set<Refund> refunds = new HashSet<>();
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
-    public UUID getId() {
+    public Long getId() {
         return this.id;
     }
 
-    public Payment id(UUID id) {
+    public Payment id(Long id) {
         this.setId(id);
         return this;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -165,30 +173,56 @@ public class Payment implements Serializable {
         this.status = status;
     }
 
-    public String getTransactionId() {
-        return this.transactionId;
+    public String getGatewayTransactionId() {
+        return this.gatewayTransactionId;
     }
 
-    public Payment transactionId(String transactionId) {
-        this.setTransactionId(transactionId);
+    public Payment gatewayTransactionId(String gatewayTransactionId) {
+        this.setGatewayTransactionId(gatewayTransactionId);
         return this;
     }
 
-    public void setTransactionId(String transactionId) {
-        this.transactionId = transactionId;
+    public void setGatewayTransactionId(String gatewayTransactionId) {
+        this.gatewayTransactionId = gatewayTransactionId;
     }
 
-    public String getPaymentGatewayResponse() {
-        return this.paymentGatewayResponse;
+    public String getGatewayResponse() {
+        return this.gatewayResponse;
     }
 
-    public Payment paymentGatewayResponse(String paymentGatewayResponse) {
-        this.setPaymentGatewayResponse(paymentGatewayResponse);
+    public Payment gatewayResponse(String gatewayResponse) {
+        this.setGatewayResponse(gatewayResponse);
         return this;
     }
 
-    public void setPaymentGatewayResponse(String paymentGatewayResponse) {
-        this.paymentGatewayResponse = paymentGatewayResponse;
+    public void setGatewayResponse(String gatewayResponse) {
+        this.gatewayResponse = gatewayResponse;
+    }
+
+    public Instant getPaidAt() {
+        return this.paidAt;
+    }
+
+    public Payment paidAt(Instant paidAt) {
+        this.setPaidAt(paidAt);
+        return this;
+    }
+
+    public void setPaidAt(Instant paidAt) {
+        this.paidAt = paidAt;
+    }
+
+    public Instant getRefundableUntil() {
+        return this.refundableUntil;
+    }
+
+    public Payment refundableUntil(Instant refundableUntil) {
+        this.setRefundableUntil(refundableUntil);
+        return this;
+    }
+
+    public void setRefundableUntil(Instant refundableUntil) {
+        this.refundableUntil = refundableUntil;
     }
 
     public Instant getCreatedAt() {
@@ -204,17 +238,35 @@ public class Payment implements Serializable {
         this.createdAt = createdAt;
     }
 
-    public Instant getUpdatedAt() {
-        return this.updatedAt;
+    public Set<Refund> getRefunds() {
+        return this.refunds;
     }
 
-    public Payment updatedAt(Instant updatedAt) {
-        this.setUpdatedAt(updatedAt);
+    public void setRefunds(Set<Refund> refunds) {
+        if (this.refunds != null) {
+            this.refunds.forEach(i -> i.setPayment(null));
+        }
+        if (refunds != null) {
+            refunds.forEach(i -> i.setPayment(this));
+        }
+        this.refunds = refunds;
+    }
+
+    public Payment refunds(Set<Refund> refunds) {
+        this.setRefunds(refunds);
         return this;
     }
 
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
+    public Payment addRefunds(Refund refund) {
+        this.refunds.add(refund);
+        refund.setPayment(this);
+        return this;
+    }
+
+    public Payment removeRefunds(Refund refund) {
+        this.refunds.remove(refund);
+        refund.setPayment(null);
+        return this;
     }
 
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
@@ -247,10 +299,11 @@ public class Payment implements Serializable {
             ", currency='" + getCurrency() + "'" +
             ", paymentMethod='" + getPaymentMethod() + "'" +
             ", status='" + getStatus() + "'" +
-            ", transactionId='" + getTransactionId() + "'" +
-            ", paymentGatewayResponse='" + getPaymentGatewayResponse() + "'" +
+            ", gatewayTransactionId='" + getGatewayTransactionId() + "'" +
+            ", gatewayResponse='" + getGatewayResponse() + "'" +
+            ", paidAt='" + getPaidAt() + "'" +
+            ", refundableUntil='" + getRefundableUntil() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
-            ", updatedAt='" + getUpdatedAt() + "'" +
             "}";
     }
 }

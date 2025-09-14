@@ -5,7 +5,9 @@ package com.ticketsystem.payment.domain.enumeration;
  */
 public enum PaymentStatus {
     PENDING,
+    PROCESSING,
     COMPLETED,
     FAILED,
+    CANCELLED,
     REFUNDED,
 }

@@ -1,0 +1,43 @@
+{
+  "annotations": {
+    "changelogDate": "20250914120803"
+  },
+  "applications": ["ms_payment"],
+  "clientRootFolder": "ms_payment",
+  "databaseType": "sql",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "userId",
+      "fieldType": "UUID",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "type",
+      "fieldType": "String",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "provider",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "maskedDetails",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "isDefault",
+      "fieldType": "Boolean"
+    },
+    {
+      "fieldName": "expiresAt",
+      "fieldType": "LocalDate"
+    }
+  ],
+  "jpaMetamodelFiltering": true,
+  "microserviceName": "ms_payment",
+  "name": "PaymentMethod",
+  "relationships": [],
+  "searchEngine": "no",
+  "service": "serviceImpl"
+}

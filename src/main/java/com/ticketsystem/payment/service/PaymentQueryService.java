@@ -6,6 +6,7 @@ import com.ticketsystem.payment.repository.PaymentRepository;
 import com.ticketsystem.payment.service.criteria.PaymentCriteria;
 import com.ticketsystem.payment.service.dto.PaymentDTO;
 import com.ticketsystem.payment.service.mapper.PaymentMapper;
+import jakarta.persistence.criteria.JoinType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -72,16 +73,18 @@ public class PaymentQueryService extends QueryService<Payment> {
             // This has to be called first, because the distinct method returns null
             specification = Specification.allOf(
                 Boolean.TRUE.equals(criteria.getDistinct()) ? distinct(criteria.getDistinct()) : null,
-                buildSpecification(criteria.getId(), Payment_.id),
+                buildRangeSpecification(criteria.getId(), Payment_.id),
                 buildSpecification(criteria.getBookingId(), Payment_.bookingId),
                 buildSpecification(criteria.getUserId(), Payment_.userId),
                 buildRangeSpecification(criteria.getAmount(), Payment_.amount),
                 buildStringSpecification(criteria.getCurrency(), Payment_.currency),
                 buildStringSpecification(criteria.getPaymentMethod(), Payment_.paymentMethod),
                 buildSpecification(criteria.getStatus(), Payment_.status),
-                buildStringSpecification(criteria.getTransactionId(), Payment_.transactionId),
+                buildStringSpecification(criteria.getGatewayTransactionId(), Payment_.gatewayTransactionId),
+                buildRangeSpecification(criteria.getPaidAt(), Payment_.paidAt),
+                buildRangeSpecification(criteria.getRefundableUntil(), Payment_.refundableUntil),
                 buildRangeSpecification(criteria.getCreatedAt(), Payment_.createdAt),
-                buildRangeSpecification(criteria.getUpdatedAt(), Payment_.updatedAt)
+                buildSpecification(criteria.getRefundsId(), root -> root.join(Payment_.refunds, JoinType.LEFT).get(Refund_.id))
             );
         }
         return specification;

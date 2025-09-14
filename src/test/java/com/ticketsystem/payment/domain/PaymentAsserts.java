@@ -56,12 +56,13 @@ public class PaymentAsserts {
             .satisfies(a -> assertThat(a.getCurrency()).as("check currency").isEqualTo(expected.getCurrency()))
             .satisfies(a -> assertThat(a.getPaymentMethod()).as("check paymentMethod").isEqualTo(expected.getPaymentMethod()))
             .satisfies(a -> assertThat(a.getStatus()).as("check status").isEqualTo(expected.getStatus()))
-            .satisfies(a -> assertThat(a.getTransactionId()).as("check transactionId").isEqualTo(expected.getTransactionId()))
             .satisfies(a ->
-                assertThat(a.getPaymentGatewayResponse()).as("check paymentGatewayResponse").isEqualTo(expected.getPaymentGatewayResponse())
+                assertThat(a.getGatewayTransactionId()).as("check gatewayTransactionId").isEqualTo(expected.getGatewayTransactionId())
             )
-            .satisfies(a -> assertThat(a.getCreatedAt()).as("check createdAt").isEqualTo(expected.getCreatedAt()))
-            .satisfies(a -> assertThat(a.getUpdatedAt()).as("check updatedAt").isEqualTo(expected.getUpdatedAt()));
+            .satisfies(a -> assertThat(a.getGatewayResponse()).as("check gatewayResponse").isEqualTo(expected.getGatewayResponse()))
+            .satisfies(a -> assertThat(a.getPaidAt()).as("check paidAt").isEqualTo(expected.getPaidAt()))
+            .satisfies(a -> assertThat(a.getRefundableUntil()).as("check refundableUntil").isEqualTo(expected.getRefundableUntil()))
+            .satisfies(a -> assertThat(a.getCreatedAt()).as("check createdAt").isEqualTo(expected.getCreatedAt()));
     }
 
     /**

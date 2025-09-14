@@ -82,9 +82,11 @@ class PaymentCriteriaTest {
         paymentCriteria.currency();
         paymentCriteria.paymentMethod();
         paymentCriteria.status();
-        paymentCriteria.transactionId();
+        paymentCriteria.gatewayTransactionId();
+        paymentCriteria.paidAt();
+        paymentCriteria.refundableUntil();
         paymentCriteria.createdAt();
-        paymentCriteria.updatedAt();
+        paymentCriteria.refundsId();
         paymentCriteria.distinct();
     }
 
@@ -98,9 +100,11 @@ class PaymentCriteriaTest {
                 condition.apply(criteria.getCurrency()) &&
                 condition.apply(criteria.getPaymentMethod()) &&
                 condition.apply(criteria.getStatus()) &&
-                condition.apply(criteria.getTransactionId()) &&
+                condition.apply(criteria.getGatewayTransactionId()) &&
+                condition.apply(criteria.getPaidAt()) &&
+                condition.apply(criteria.getRefundableUntil()) &&
                 condition.apply(criteria.getCreatedAt()) &&
-                condition.apply(criteria.getUpdatedAt()) &&
+                condition.apply(criteria.getRefundsId()) &&
                 condition.apply(criteria.getDistinct()),
             "every filter matches"
         );
@@ -116,9 +120,11 @@ class PaymentCriteriaTest {
                 condition.apply(criteria.getCurrency(), copy.getCurrency()) &&
                 condition.apply(criteria.getPaymentMethod(), copy.getPaymentMethod()) &&
                 condition.apply(criteria.getStatus(), copy.getStatus()) &&
-                condition.apply(criteria.getTransactionId(), copy.getTransactionId()) &&
+                condition.apply(criteria.getGatewayTransactionId(), copy.getGatewayTransactionId()) &&
+                condition.apply(criteria.getPaidAt(), copy.getPaidAt()) &&
+                condition.apply(criteria.getRefundableUntil(), copy.getRefundableUntil()) &&
                 condition.apply(criteria.getCreatedAt(), copy.getCreatedAt()) &&
-                condition.apply(criteria.getUpdatedAt(), copy.getUpdatedAt()) &&
+                condition.apply(criteria.getRefundsId(), copy.getRefundsId()) &&
                 condition.apply(criteria.getDistinct(), copy.getDistinct()),
             "every filter matches"
         );

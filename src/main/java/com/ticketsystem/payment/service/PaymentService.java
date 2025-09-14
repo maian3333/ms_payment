@@ -2,7 +2,6 @@ package com.ticketsystem.payment.service;
 
 import com.ticketsystem.payment.service.dto.PaymentDTO;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Service Interface for managing {@link com.ticketsystem.payment.domain.Payment}.
@@ -38,12 +37,12 @@ public interface PaymentService {
      * @param id the id of the entity.
      * @return the entity.
      */
-    Optional<PaymentDTO> findOne(UUID id);
+    Optional<PaymentDTO> findOne(Long id);
 
     /**
      * Delete the "id" payment.
      *
      * @param id the id of the entity.
      */
-    void delete(UUID id);
+    void delete(Long id);
 }

@@ -3,7 +3,6 @@ package com.ticketsystem.payment.service.dto;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.ticketsystem.payment.web.rest.TestUtil;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class PaymentDTOTest {
@@ -12,12 +11,12 @@ class PaymentDTOTest {
     void dtoEqualsVerifier() throws Exception {
         TestUtil.equalsVerifier(PaymentDTO.class);
         PaymentDTO paymentDTO1 = new PaymentDTO();
-        paymentDTO1.setId(UUID.randomUUID());
+        paymentDTO1.setId(1L);
         PaymentDTO paymentDTO2 = new PaymentDTO();
         assertThat(paymentDTO1).isNotEqualTo(paymentDTO2);
         paymentDTO2.setId(paymentDTO1.getId());
         assertThat(paymentDTO1).isEqualTo(paymentDTO2);
-        paymentDTO2.setId(UUID.randomUUID());
+        paymentDTO2.setId(2L);
         assertThat(paymentDTO1).isNotEqualTo(paymentDTO2);
         paymentDTO1.setId(null);
         assertThat(paymentDTO1).isNotEqualTo(paymentDTO2);

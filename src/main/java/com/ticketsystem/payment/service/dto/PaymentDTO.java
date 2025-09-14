@@ -15,8 +15,7 @@ import java.util.UUID;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class PaymentDTO implements Serializable {
 
-    @NotNull
-    private UUID id;
+    private Long id;
 
     @NotNull
     private UUID bookingId;
@@ -36,22 +35,23 @@ public class PaymentDTO implements Serializable {
     @NotNull
     private PaymentStatus status;
 
-    private String transactionId;
+    private String gatewayTransactionId;
 
     @Lob
-    private String paymentGatewayResponse;
+    private String gatewayResponse;
+
+    private Instant paidAt;
+
+    private Instant refundableUntil;
 
     @NotNull
     private Instant createdAt;
 
-    @NotNull
-    private Instant updatedAt;
-
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -103,20 +103,36 @@ public class PaymentDTO implements Serializable {
         this.status = status;
     }
 
-    public String getTransactionId() {
-        return transactionId;
+    public String getGatewayTransactionId() {
+        return gatewayTransactionId;
     }
 
-    public void setTransactionId(String transactionId) {
-        this.transactionId = transactionId;
+    public void setGatewayTransactionId(String gatewayTransactionId) {
+        this.gatewayTransactionId = gatewayTransactionId;
     }
 
-    public String getPaymentGatewayResponse() {
-        return paymentGatewayResponse;
+    public String getGatewayResponse() {
+        return gatewayResponse;
     }
 
-    public void setPaymentGatewayResponse(String paymentGatewayResponse) {
-        this.paymentGatewayResponse = paymentGatewayResponse;
+    public void setGatewayResponse(String gatewayResponse) {
+        this.gatewayResponse = gatewayResponse;
+    }
+
+    public Instant getPaidAt() {
+        return paidAt;
+    }
+
+    public void setPaidAt(Instant paidAt) {
+        this.paidAt = paidAt;
+    }
+
+    public Instant getRefundableUntil() {
+        return refundableUntil;
+    }
+
+    public void setRefundableUntil(Instant refundableUntil) {
+        this.refundableUntil = refundableUntil;
     }
 
     public Instant getCreatedAt() {
@@ -125,14 +141,6 @@ public class PaymentDTO implements Serializable {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     @Override
@@ -160,17 +168,18 @@ public class PaymentDTO implements Serializable {
     @Override
     public String toString() {
         return "PaymentDTO{" +
-            "id='" + getId() + "'" +
+            "id=" + getId() +
             ", bookingId='" + getBookingId() + "'" +
             ", userId='" + getUserId() + "'" +
             ", amount=" + getAmount() +
             ", currency='" + getCurrency() + "'" +
             ", paymentMethod='" + getPaymentMethod() + "'" +
             ", status='" + getStatus() + "'" +
-            ", transactionId='" + getTransactionId() + "'" +
-            ", paymentGatewayResponse='" + getPaymentGatewayResponse() + "'" +
+            ", gatewayTransactionId='" + getGatewayTransactionId() + "'" +
+            ", gatewayResponse='" + getGatewayResponse() + "'" +
+            ", paidAt='" + getPaidAt() + "'" +
+            ", refundableUntil='" + getRefundableUntil() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
-            ", updatedAt='" + getUpdatedAt() + "'" +
             "}";
     }
 }

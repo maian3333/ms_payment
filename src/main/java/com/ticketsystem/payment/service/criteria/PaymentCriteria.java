@@ -40,7 +40,7 @@ public class PaymentCriteria implements Serializable, Criteria {
 
     private static final long serialVersionUID = 1L;
 
-    private UUIDFilter id;
+    private LongFilter id;
 
     private UUIDFilter bookingId;
 
@@ -54,27 +54,33 @@ public class PaymentCriteria implements Serializable, Criteria {
 
     private PaymentStatusFilter status;
 
-    private StringFilter transactionId;
+    private StringFilter gatewayTransactionId;
+
+    private InstantFilter paidAt;
+
+    private InstantFilter refundableUntil;
 
     private InstantFilter createdAt;
 
-    private InstantFilter updatedAt;
+    private LongFilter refundsId;
 
     private Boolean distinct;
 
     public PaymentCriteria() {}
 
     public PaymentCriteria(PaymentCriteria other) {
-        this.id = other.optionalId().map(UUIDFilter::copy).orElse(null);
+        this.id = other.optionalId().map(LongFilter::copy).orElse(null);
         this.bookingId = other.optionalBookingId().map(UUIDFilter::copy).orElse(null);
         this.userId = other.optionalUserId().map(UUIDFilter::copy).orElse(null);
         this.amount = other.optionalAmount().map(BigDecimalFilter::copy).orElse(null);
         this.currency = other.optionalCurrency().map(StringFilter::copy).orElse(null);
         this.paymentMethod = other.optionalPaymentMethod().map(StringFilter::copy).orElse(null);
         this.status = other.optionalStatus().map(PaymentStatusFilter::copy).orElse(null);
-        this.transactionId = other.optionalTransactionId().map(StringFilter::copy).orElse(null);
+        this.gatewayTransactionId = other.optionalGatewayTransactionId().map(StringFilter::copy).orElse(null);
+        this.paidAt = other.optionalPaidAt().map(InstantFilter::copy).orElse(null);
+        this.refundableUntil = other.optionalRefundableUntil().map(InstantFilter::copy).orElse(null);
         this.createdAt = other.optionalCreatedAt().map(InstantFilter::copy).orElse(null);
-        this.updatedAt = other.optionalUpdatedAt().map(InstantFilter::copy).orElse(null);
+        this.refundsId = other.optionalRefundsId().map(LongFilter::copy).orElse(null);
         this.distinct = other.distinct;
     }
 
@@ -83,22 +89,22 @@ public class PaymentCriteria implements Serializable, Criteria {
         return new PaymentCriteria(this);
     }
 
-    public UUIDFilter getId() {
+    public LongFilter getId() {
         return id;
     }
 
-    public Optional<UUIDFilter> optionalId() {
+    public Optional<LongFilter> optionalId() {
         return Optional.ofNullable(id);
     }
 
-    public UUIDFilter id() {
+    public LongFilter id() {
         if (id == null) {
-            setId(new UUIDFilter());
+            setId(new LongFilter());
         }
         return id;
     }
 
-    public void setId(UUIDFilter id) {
+    public void setId(LongFilter id) {
         this.id = id;
     }
 
@@ -216,23 +222,61 @@ public class PaymentCriteria implements Serializable, Criteria {
         this.status = status;
     }
 
-    public StringFilter getTransactionId() {
-        return transactionId;
+    public StringFilter getGatewayTransactionId() {
+        return gatewayTransactionId;
     }
 
-    public Optional<StringFilter> optionalTransactionId() {
-        return Optional.ofNullable(transactionId);
+    public Optional<StringFilter> optionalGatewayTransactionId() {
+        return Optional.ofNullable(gatewayTransactionId);
     }
 
-    public StringFilter transactionId() {
-        if (transactionId == null) {
-            setTransactionId(new StringFilter());
+    public StringFilter gatewayTransactionId() {
+        if (gatewayTransactionId == null) {
+            setGatewayTransactionId(new StringFilter());
         }
-        return transactionId;
+        return gatewayTransactionId;
     }
 
-    public void setTransactionId(StringFilter transactionId) {
-        this.transactionId = transactionId;
+    public void setGatewayTransactionId(StringFilter gatewayTransactionId) {
+        this.gatewayTransactionId = gatewayTransactionId;
+    }
+
+    public InstantFilter getPaidAt() {
+        return paidAt;
+    }
+
+    public Optional<InstantFilter> optionalPaidAt() {
+        return Optional.ofNullable(paidAt);
+    }
+
+    public InstantFilter paidAt() {
+        if (paidAt == null) {
+            setPaidAt(new InstantFilter());
+        }
+        return paidAt;
+    }
+
+    public void setPaidAt(InstantFilter paidAt) {
+        this.paidAt = paidAt;
+    }
+
+    public InstantFilter getRefundableUntil() {
+        return refundableUntil;
+    }
+
+    public Optional<InstantFilter> optionalRefundableUntil() {
+        return Optional.ofNullable(refundableUntil);
+    }
+
+    public InstantFilter refundableUntil() {
+        if (refundableUntil == null) {
+            setRefundableUntil(new InstantFilter());
+        }
+        return refundableUntil;
+    }
+
+    public void setRefundableUntil(InstantFilter refundableUntil) {
+        this.refundableUntil = refundableUntil;
     }
 
     public InstantFilter getCreatedAt() {
@@ -254,23 +298,23 @@ public class PaymentCriteria implements Serializable, Criteria {
         this.createdAt = createdAt;
     }
 
-    public InstantFilter getUpdatedAt() {
-        return updatedAt;
+    public LongFilter getRefundsId() {
+        return refundsId;
     }
 
-    public Optional<InstantFilter> optionalUpdatedAt() {
-        return Optional.ofNullable(updatedAt);
+    public Optional<LongFilter> optionalRefundsId() {
+        return Optional.ofNullable(refundsId);
     }
 
-    public InstantFilter updatedAt() {
-        if (updatedAt == null) {
-            setUpdatedAt(new InstantFilter());
+    public LongFilter refundsId() {
+        if (refundsId == null) {
+            setRefundsId(new LongFilter());
         }
-        return updatedAt;
+        return refundsId;
     }
 
-    public void setUpdatedAt(InstantFilter updatedAt) {
-        this.updatedAt = updatedAt;
+    public void setRefundsId(LongFilter refundsId) {
+        this.refundsId = refundsId;
     }
 
     public Boolean getDistinct() {
@@ -309,16 +353,32 @@ public class PaymentCriteria implements Serializable, Criteria {
             Objects.equals(currency, that.currency) &&
             Objects.equals(paymentMethod, that.paymentMethod) &&
             Objects.equals(status, that.status) &&
-            Objects.equals(transactionId, that.transactionId) &&
+            Objects.equals(gatewayTransactionId, that.gatewayTransactionId) &&
+            Objects.equals(paidAt, that.paidAt) &&
+            Objects.equals(refundableUntil, that.refundableUntil) &&
             Objects.equals(createdAt, that.createdAt) &&
-            Objects.equals(updatedAt, that.updatedAt) &&
+            Objects.equals(refundsId, that.refundsId) &&
             Objects.equals(distinct, that.distinct)
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, bookingId, userId, amount, currency, paymentMethod, status, transactionId, createdAt, updatedAt, distinct);
+        return Objects.hash(
+            id,
+            bookingId,
+            userId,
+            amount,
+            currency,
+            paymentMethod,
+            status,
+            gatewayTransactionId,
+            paidAt,
+            refundableUntil,
+            createdAt,
+            refundsId,
+            distinct
+        );
     }
 
     // prettier-ignore
@@ -332,9 +392,11 @@ public class PaymentCriteria implements Serializable, Criteria {
             optionalCurrency().map(f -> "currency=" + f + ", ").orElse("") +
             optionalPaymentMethod().map(f -> "paymentMethod=" + f + ", ").orElse("") +
             optionalStatus().map(f -> "status=" + f + ", ").orElse("") +
-            optionalTransactionId().map(f -> "transactionId=" + f + ", ").orElse("") +
+            optionalGatewayTransactionId().map(f -> "gatewayTransactionId=" + f + ", ").orElse("") +
+            optionalPaidAt().map(f -> "paidAt=" + f + ", ").orElse("") +
+            optionalRefundableUntil().map(f -> "refundableUntil=" + f + ", ").orElse("") +
             optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
-            optionalUpdatedAt().map(f -> "updatedAt=" + f + ", ").orElse("") +
+            optionalRefundsId().map(f -> "refundsId=" + f + ", ").orElse("") +
             optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
         "}";
     }

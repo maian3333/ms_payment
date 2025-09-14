@@ -20,7 +20,9 @@ import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,22 +58,28 @@ class PaymentResourceIT {
     private static final String UPDATED_PAYMENT_METHOD = "BBBBBBBBBB";
 
     private static final PaymentStatus DEFAULT_STATUS = PaymentStatus.PENDING;
-    private static final PaymentStatus UPDATED_STATUS = PaymentStatus.COMPLETED;
+    private static final PaymentStatus UPDATED_STATUS = PaymentStatus.PROCESSING;
 
-    private static final String DEFAULT_TRANSACTION_ID = "AAAAAAAAAA";
-    private static final String UPDATED_TRANSACTION_ID = "BBBBBBBBBB";
+    private static final String DEFAULT_GATEWAY_TRANSACTION_ID = "AAAAAAAAAA";
+    private static final String UPDATED_GATEWAY_TRANSACTION_ID = "BBBBBBBBBB";
 
-    private static final String DEFAULT_PAYMENT_GATEWAY_RESPONSE = "AAAAAAAAAA";
-    private static final String UPDATED_PAYMENT_GATEWAY_RESPONSE = "BBBBBBBBBB";
+    private static final String DEFAULT_GATEWAY_RESPONSE = "AAAAAAAAAA";
+    private static final String UPDATED_GATEWAY_RESPONSE = "BBBBBBBBBB";
+
+    private static final Instant DEFAULT_PAID_AT = Instant.ofEpochMilli(0L);
+    private static final Instant UPDATED_PAID_AT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+
+    private static final Instant DEFAULT_REFUNDABLE_UNTIL = Instant.ofEpochMilli(0L);
+    private static final Instant UPDATED_REFUNDABLE_UNTIL = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
     private static final Instant DEFAULT_CREATED_AT = Instant.ofEpochMilli(0L);
     private static final Instant UPDATED_CREATED_AT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
-    private static final Instant DEFAULT_UPDATED_AT = Instant.ofEpochMilli(0L);
-    private static final Instant UPDATED_UPDATED_AT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
-
     private static final String ENTITY_API_URL = "/api/payments";
     private static final String ENTITY_API_URL_ID = ENTITY_API_URL + "/{id}";
+
+    private static Random random = new Random();
+    private static AtomicLong longCount = new AtomicLong(random.nextInt() + (2 * Integer.MAX_VALUE));
 
     @Autowired
     private ObjectMapper om;
@@ -106,10 +114,11 @@ class PaymentResourceIT {
             .currency(DEFAULT_CURRENCY)
             .paymentMethod(DEFAULT_PAYMENT_METHOD)
             .status(DEFAULT_STATUS)
-            .transactionId(DEFAULT_TRANSACTION_ID)
-            .paymentGatewayResponse(DEFAULT_PAYMENT_GATEWAY_RESPONSE)
-            .createdAt(DEFAULT_CREATED_AT)
-            .updatedAt(DEFAULT_UPDATED_AT);
+            .gatewayTransactionId(DEFAULT_GATEWAY_TRANSACTION_ID)
+            .gatewayResponse(DEFAULT_GATEWAY_RESPONSE)
+            .paidAt(DEFAULT_PAID_AT)
+            .refundableUntil(DEFAULT_REFUNDABLE_UNTIL)
+            .createdAt(DEFAULT_CREATED_AT);
     }
 
     /**
@@ -126,10 +135,11 @@ class PaymentResourceIT {
             .currency(UPDATED_CURRENCY)
             .paymentMethod(UPDATED_PAYMENT_METHOD)
             .status(UPDATED_STATUS)
-            .transactionId(UPDATED_TRANSACTION_ID)
-            .paymentGatewayResponse(UPDATED_PAYMENT_GATEWAY_RESPONSE)
-            .createdAt(UPDATED_CREATED_AT)
-            .updatedAt(UPDATED_UPDATED_AT);
+            .gatewayTransactionId(UPDATED_GATEWAY_TRANSACTION_ID)
+            .gatewayResponse(UPDATED_GATEWAY_RESPONSE)
+            .paidAt(UPDATED_PAID_AT)
+            .refundableUntil(UPDATED_REFUNDABLE_UNTIL)
+            .createdAt(UPDATED_CREATED_AT);
     }
 
     @BeforeEach
@@ -175,7 +185,7 @@ class PaymentResourceIT {
     @Transactional
     void createPaymentWithExistingId() throws Exception {
         // Create the Payment with an existing ID
-        insertedPayment = paymentRepository.saveAndFlush(payment);
+        payment.setId(1L);
         PaymentDTO paymentDTO = paymentMapper.toDto(payment);
 
         long databaseSizeBeforeCreate = getRepositoryCount();
@@ -310,23 +320,6 @@ class PaymentResourceIT {
 
     @Test
     @Transactional
-    void checkUpdatedAtIsRequired() throws Exception {
-        long databaseSizeBeforeTest = getRepositoryCount();
-        // set the field null
-        payment.setUpdatedAt(null);
-
-        // Create the Payment, which fails.
-        PaymentDTO paymentDTO = paymentMapper.toDto(payment);
-
-        restPaymentMockMvc
-            .perform(post(ENTITY_API_URL).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsBytes(paymentDTO)))
-            .andExpect(status().isBadRequest());
-
-        assertSameRepositoryCount(databaseSizeBeforeTest);
-    }
-
-    @Test
-    @Transactional
     void getAllPayments() throws Exception {
         // Initialize the database
         insertedPayment = paymentRepository.saveAndFlush(payment);
@@ -336,17 +329,18 @@ class PaymentResourceIT {
             .perform(get(ENTITY_API_URL + "?sort=id,desc"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(jsonPath("$.[*].id").value(hasItem(payment.getId().toString())))
+            .andExpect(jsonPath("$.[*].id").value(hasItem(payment.getId().intValue())))
             .andExpect(jsonPath("$.[*].bookingId").value(hasItem(DEFAULT_BOOKING_ID.toString())))
             .andExpect(jsonPath("$.[*].userId").value(hasItem(DEFAULT_USER_ID.toString())))
             .andExpect(jsonPath("$.[*].amount").value(hasItem(sameNumber(DEFAULT_AMOUNT))))
             .andExpect(jsonPath("$.[*].currency").value(hasItem(DEFAULT_CURRENCY)))
             .andExpect(jsonPath("$.[*].paymentMethod").value(hasItem(DEFAULT_PAYMENT_METHOD)))
             .andExpect(jsonPath("$.[*].status").value(hasItem(DEFAULT_STATUS.toString())))
-            .andExpect(jsonPath("$.[*].transactionId").value(hasItem(DEFAULT_TRANSACTION_ID)))
-            .andExpect(jsonPath("$.[*].paymentGatewayResponse").value(hasItem(DEFAULT_PAYMENT_GATEWAY_RESPONSE)))
-            .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())))
-            .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())));
+            .andExpect(jsonPath("$.[*].gatewayTransactionId").value(hasItem(DEFAULT_GATEWAY_TRANSACTION_ID)))
+            .andExpect(jsonPath("$.[*].gatewayResponse").value(hasItem(DEFAULT_GATEWAY_RESPONSE)))
+            .andExpect(jsonPath("$.[*].paidAt").value(hasItem(DEFAULT_PAID_AT.toString())))
+            .andExpect(jsonPath("$.[*].refundableUntil").value(hasItem(DEFAULT_REFUNDABLE_UNTIL.toString())))
+            .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())));
     }
 
     @Test
@@ -360,17 +354,18 @@ class PaymentResourceIT {
             .perform(get(ENTITY_API_URL_ID, payment.getId()))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(jsonPath("$.id").value(payment.getId().toString()))
+            .andExpect(jsonPath("$.id").value(payment.getId().intValue()))
             .andExpect(jsonPath("$.bookingId").value(DEFAULT_BOOKING_ID.toString()))
             .andExpect(jsonPath("$.userId").value(DEFAULT_USER_ID.toString()))
             .andExpect(jsonPath("$.amount").value(sameNumber(DEFAULT_AMOUNT)))
             .andExpect(jsonPath("$.currency").value(DEFAULT_CURRENCY))
             .andExpect(jsonPath("$.paymentMethod").value(DEFAULT_PAYMENT_METHOD))
             .andExpect(jsonPath("$.status").value(DEFAULT_STATUS.toString()))
-            .andExpect(jsonPath("$.transactionId").value(DEFAULT_TRANSACTION_ID))
-            .andExpect(jsonPath("$.paymentGatewayResponse").value(DEFAULT_PAYMENT_GATEWAY_RESPONSE))
-            .andExpect(jsonPath("$.createdAt").value(DEFAULT_CREATED_AT.toString()))
-            .andExpect(jsonPath("$.updatedAt").value(DEFAULT_UPDATED_AT.toString()));
+            .andExpect(jsonPath("$.gatewayTransactionId").value(DEFAULT_GATEWAY_TRANSACTION_ID))
+            .andExpect(jsonPath("$.gatewayResponse").value(DEFAULT_GATEWAY_RESPONSE))
+            .andExpect(jsonPath("$.paidAt").value(DEFAULT_PAID_AT.toString()))
+            .andExpect(jsonPath("$.refundableUntil").value(DEFAULT_REFUNDABLE_UNTIL.toString()))
+            .andExpect(jsonPath("$.createdAt").value(DEFAULT_CREATED_AT.toString()));
     }
 
     @Test
@@ -379,9 +374,13 @@ class PaymentResourceIT {
         // Initialize the database
         insertedPayment = paymentRepository.saveAndFlush(payment);
 
-        UUID id = payment.getId();
+        Long id = payment.getId();
 
         defaultPaymentFiltering("id.equals=" + id, "id.notEquals=" + id);
+
+        defaultPaymentFiltering("id.greaterThanOrEqual=" + id, "id.greaterThan=" + id);
+
+        defaultPaymentFiltering("id.lessThanOrEqual=" + id, "id.lessThan=" + id);
     }
 
     @Test
@@ -652,58 +651,127 @@ class PaymentResourceIT {
 
     @Test
     @Transactional
-    void getAllPaymentsByTransactionIdIsEqualToSomething() throws Exception {
+    void getAllPaymentsByGatewayTransactionIdIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedPayment = paymentRepository.saveAndFlush(payment);
 
-        // Get all the paymentList where transactionId equals to
-        defaultPaymentFiltering("transactionId.equals=" + DEFAULT_TRANSACTION_ID, "transactionId.equals=" + UPDATED_TRANSACTION_ID);
-    }
-
-    @Test
-    @Transactional
-    void getAllPaymentsByTransactionIdIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedPayment = paymentRepository.saveAndFlush(payment);
-
-        // Get all the paymentList where transactionId in
+        // Get all the paymentList where gatewayTransactionId equals to
         defaultPaymentFiltering(
-            "transactionId.in=" + DEFAULT_TRANSACTION_ID + "," + UPDATED_TRANSACTION_ID,
-            "transactionId.in=" + UPDATED_TRANSACTION_ID
+            "gatewayTransactionId.equals=" + DEFAULT_GATEWAY_TRANSACTION_ID,
+            "gatewayTransactionId.equals=" + UPDATED_GATEWAY_TRANSACTION_ID
         );
     }
 
     @Test
     @Transactional
-    void getAllPaymentsByTransactionIdIsNullOrNotNull() throws Exception {
+    void getAllPaymentsByGatewayTransactionIdIsInShouldWork() throws Exception {
         // Initialize the database
         insertedPayment = paymentRepository.saveAndFlush(payment);
 
-        // Get all the paymentList where transactionId is not null
-        defaultPaymentFiltering("transactionId.specified=true", "transactionId.specified=false");
-    }
-
-    @Test
-    @Transactional
-    void getAllPaymentsByTransactionIdContainsSomething() throws Exception {
-        // Initialize the database
-        insertedPayment = paymentRepository.saveAndFlush(payment);
-
-        // Get all the paymentList where transactionId contains
-        defaultPaymentFiltering("transactionId.contains=" + DEFAULT_TRANSACTION_ID, "transactionId.contains=" + UPDATED_TRANSACTION_ID);
-    }
-
-    @Test
-    @Transactional
-    void getAllPaymentsByTransactionIdNotContainsSomething() throws Exception {
-        // Initialize the database
-        insertedPayment = paymentRepository.saveAndFlush(payment);
-
-        // Get all the paymentList where transactionId does not contain
+        // Get all the paymentList where gatewayTransactionId in
         defaultPaymentFiltering(
-            "transactionId.doesNotContain=" + UPDATED_TRANSACTION_ID,
-            "transactionId.doesNotContain=" + DEFAULT_TRANSACTION_ID
+            "gatewayTransactionId.in=" + DEFAULT_GATEWAY_TRANSACTION_ID + "," + UPDATED_GATEWAY_TRANSACTION_ID,
+            "gatewayTransactionId.in=" + UPDATED_GATEWAY_TRANSACTION_ID
         );
+    }
+
+    @Test
+    @Transactional
+    void getAllPaymentsByGatewayTransactionIdIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedPayment = paymentRepository.saveAndFlush(payment);
+
+        // Get all the paymentList where gatewayTransactionId is not null
+        defaultPaymentFiltering("gatewayTransactionId.specified=true", "gatewayTransactionId.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllPaymentsByGatewayTransactionIdContainsSomething() throws Exception {
+        // Initialize the database
+        insertedPayment = paymentRepository.saveAndFlush(payment);
+
+        // Get all the paymentList where gatewayTransactionId contains
+        defaultPaymentFiltering(
+            "gatewayTransactionId.contains=" + DEFAULT_GATEWAY_TRANSACTION_ID,
+            "gatewayTransactionId.contains=" + UPDATED_GATEWAY_TRANSACTION_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllPaymentsByGatewayTransactionIdNotContainsSomething() throws Exception {
+        // Initialize the database
+        insertedPayment = paymentRepository.saveAndFlush(payment);
+
+        // Get all the paymentList where gatewayTransactionId does not contain
+        defaultPaymentFiltering(
+            "gatewayTransactionId.doesNotContain=" + UPDATED_GATEWAY_TRANSACTION_ID,
+            "gatewayTransactionId.doesNotContain=" + DEFAULT_GATEWAY_TRANSACTION_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllPaymentsByPaidAtIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedPayment = paymentRepository.saveAndFlush(payment);
+
+        // Get all the paymentList where paidAt equals to
+        defaultPaymentFiltering("paidAt.equals=" + DEFAULT_PAID_AT, "paidAt.equals=" + UPDATED_PAID_AT);
+    }
+
+    @Test
+    @Transactional
+    void getAllPaymentsByPaidAtIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedPayment = paymentRepository.saveAndFlush(payment);
+
+        // Get all the paymentList where paidAt in
+        defaultPaymentFiltering("paidAt.in=" + DEFAULT_PAID_AT + "," + UPDATED_PAID_AT, "paidAt.in=" + UPDATED_PAID_AT);
+    }
+
+    @Test
+    @Transactional
+    void getAllPaymentsByPaidAtIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedPayment = paymentRepository.saveAndFlush(payment);
+
+        // Get all the paymentList where paidAt is not null
+        defaultPaymentFiltering("paidAt.specified=true", "paidAt.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllPaymentsByRefundableUntilIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedPayment = paymentRepository.saveAndFlush(payment);
+
+        // Get all the paymentList where refundableUntil equals to
+        defaultPaymentFiltering("refundableUntil.equals=" + DEFAULT_REFUNDABLE_UNTIL, "refundableUntil.equals=" + UPDATED_REFUNDABLE_UNTIL);
+    }
+
+    @Test
+    @Transactional
+    void getAllPaymentsByRefundableUntilIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedPayment = paymentRepository.saveAndFlush(payment);
+
+        // Get all the paymentList where refundableUntil in
+        defaultPaymentFiltering(
+            "refundableUntil.in=" + DEFAULT_REFUNDABLE_UNTIL + "," + UPDATED_REFUNDABLE_UNTIL,
+            "refundableUntil.in=" + UPDATED_REFUNDABLE_UNTIL
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllPaymentsByRefundableUntilIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedPayment = paymentRepository.saveAndFlush(payment);
+
+        // Get all the paymentList where refundableUntil is not null
+        defaultPaymentFiltering("refundableUntil.specified=true", "refundableUntil.specified=false");
     }
 
     @Test
@@ -736,36 +804,6 @@ class PaymentResourceIT {
         defaultPaymentFiltering("createdAt.specified=true", "createdAt.specified=false");
     }
 
-    @Test
-    @Transactional
-    void getAllPaymentsByUpdatedAtIsEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedPayment = paymentRepository.saveAndFlush(payment);
-
-        // Get all the paymentList where updatedAt equals to
-        defaultPaymentFiltering("updatedAt.equals=" + DEFAULT_UPDATED_AT, "updatedAt.equals=" + UPDATED_UPDATED_AT);
-    }
-
-    @Test
-    @Transactional
-    void getAllPaymentsByUpdatedAtIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedPayment = paymentRepository.saveAndFlush(payment);
-
-        // Get all the paymentList where updatedAt in
-        defaultPaymentFiltering("updatedAt.in=" + DEFAULT_UPDATED_AT + "," + UPDATED_UPDATED_AT, "updatedAt.in=" + UPDATED_UPDATED_AT);
-    }
-
-    @Test
-    @Transactional
-    void getAllPaymentsByUpdatedAtIsNullOrNotNull() throws Exception {
-        // Initialize the database
-        insertedPayment = paymentRepository.saveAndFlush(payment);
-
-        // Get all the paymentList where updatedAt is not null
-        defaultPaymentFiltering("updatedAt.specified=true", "updatedAt.specified=false");
-    }
-
     private void defaultPaymentFiltering(String shouldBeFound, String shouldNotBeFound) throws Exception {
         defaultPaymentShouldBeFound(shouldBeFound);
         defaultPaymentShouldNotBeFound(shouldNotBeFound);
@@ -779,17 +817,18 @@ class PaymentResourceIT {
             .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(jsonPath("$.[*].id").value(hasItem(payment.getId().toString())))
+            .andExpect(jsonPath("$.[*].id").value(hasItem(payment.getId().intValue())))
             .andExpect(jsonPath("$.[*].bookingId").value(hasItem(DEFAULT_BOOKING_ID.toString())))
             .andExpect(jsonPath("$.[*].userId").value(hasItem(DEFAULT_USER_ID.toString())))
             .andExpect(jsonPath("$.[*].amount").value(hasItem(sameNumber(DEFAULT_AMOUNT))))
             .andExpect(jsonPath("$.[*].currency").value(hasItem(DEFAULT_CURRENCY)))
             .andExpect(jsonPath("$.[*].paymentMethod").value(hasItem(DEFAULT_PAYMENT_METHOD)))
             .andExpect(jsonPath("$.[*].status").value(hasItem(DEFAULT_STATUS.toString())))
-            .andExpect(jsonPath("$.[*].transactionId").value(hasItem(DEFAULT_TRANSACTION_ID)))
-            .andExpect(jsonPath("$.[*].paymentGatewayResponse").value(hasItem(DEFAULT_PAYMENT_GATEWAY_RESPONSE)))
-            .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())))
-            .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())));
+            .andExpect(jsonPath("$.[*].gatewayTransactionId").value(hasItem(DEFAULT_GATEWAY_TRANSACTION_ID)))
+            .andExpect(jsonPath("$.[*].gatewayResponse").value(hasItem(DEFAULT_GATEWAY_RESPONSE)))
+            .andExpect(jsonPath("$.[*].paidAt").value(hasItem(DEFAULT_PAID_AT.toString())))
+            .andExpect(jsonPath("$.[*].refundableUntil").value(hasItem(DEFAULT_REFUNDABLE_UNTIL.toString())))
+            .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())));
 
         // Check, that the count call also returns 1
         restPaymentMockMvc
@@ -822,7 +861,7 @@ class PaymentResourceIT {
     @Transactional
     void getNonExistingPayment() throws Exception {
         // Get the payment
-        restPaymentMockMvc.perform(get(ENTITY_API_URL_ID, UUID.randomUUID().toString())).andExpect(status().isNotFound());
+        restPaymentMockMvc.perform(get(ENTITY_API_URL_ID, Long.MAX_VALUE)).andExpect(status().isNotFound());
     }
 
     @Test
@@ -844,10 +883,11 @@ class PaymentResourceIT {
             .currency(UPDATED_CURRENCY)
             .paymentMethod(UPDATED_PAYMENT_METHOD)
             .status(UPDATED_STATUS)
-            .transactionId(UPDATED_TRANSACTION_ID)
-            .paymentGatewayResponse(UPDATED_PAYMENT_GATEWAY_RESPONSE)
-            .createdAt(UPDATED_CREATED_AT)
-            .updatedAt(UPDATED_UPDATED_AT);
+            .gatewayTransactionId(UPDATED_GATEWAY_TRANSACTION_ID)
+            .gatewayResponse(UPDATED_GATEWAY_RESPONSE)
+            .paidAt(UPDATED_PAID_AT)
+            .refundableUntil(UPDATED_REFUNDABLE_UNTIL)
+            .createdAt(UPDATED_CREATED_AT);
         PaymentDTO paymentDTO = paymentMapper.toDto(updatedPayment);
 
         restPaymentMockMvc
@@ -868,7 +908,7 @@ class PaymentResourceIT {
     @Transactional
     void putNonExistingPayment() throws Exception {
         long databaseSizeBeforeUpdate = getRepositoryCount();
-        payment.setId(UUID.randomUUID());
+        payment.setId(longCount.incrementAndGet());
 
         // Create the Payment
         PaymentDTO paymentDTO = paymentMapper.toDto(payment);
@@ -891,7 +931,7 @@ class PaymentResourceIT {
     @Transactional
     void putWithIdMismatchPayment() throws Exception {
         long databaseSizeBeforeUpdate = getRepositoryCount();
-        payment.setId(UUID.randomUUID());
+        payment.setId(longCount.incrementAndGet());
 
         // Create the Payment
         PaymentDTO paymentDTO = paymentMapper.toDto(payment);
@@ -899,7 +939,7 @@ class PaymentResourceIT {
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         restPaymentMockMvc
             .perform(
-                put(ENTITY_API_URL_ID, UUID.randomUUID())
+                put(ENTITY_API_URL_ID, longCount.incrementAndGet())
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(om.writeValueAsBytes(paymentDTO))
@@ -914,7 +954,7 @@ class PaymentResourceIT {
     @Transactional
     void putWithMissingIdPathParamPayment() throws Exception {
         long databaseSizeBeforeUpdate = getRepositoryCount();
-        payment.setId(UUID.randomUUID());
+        payment.setId(longCount.incrementAndGet());
 
         // Create the Payment
         PaymentDTO paymentDTO = paymentMapper.toDto(payment);
@@ -946,7 +986,8 @@ class PaymentResourceIT {
             .currency(UPDATED_CURRENCY)
             .paymentMethod(UPDATED_PAYMENT_METHOD)
             .status(UPDATED_STATUS)
-            .transactionId(UPDATED_TRANSACTION_ID)
+            .gatewayTransactionId(UPDATED_GATEWAY_TRANSACTION_ID)
+            .paidAt(UPDATED_PAID_AT)
             .createdAt(UPDATED_CREATED_AT);
 
         restPaymentMockMvc
@@ -983,10 +1024,11 @@ class PaymentResourceIT {
             .currency(UPDATED_CURRENCY)
             .paymentMethod(UPDATED_PAYMENT_METHOD)
             .status(UPDATED_STATUS)
-            .transactionId(UPDATED_TRANSACTION_ID)
-            .paymentGatewayResponse(UPDATED_PAYMENT_GATEWAY_RESPONSE)
-            .createdAt(UPDATED_CREATED_AT)
-            .updatedAt(UPDATED_UPDATED_AT);
+            .gatewayTransactionId(UPDATED_GATEWAY_TRANSACTION_ID)
+            .gatewayResponse(UPDATED_GATEWAY_RESPONSE)
+            .paidAt(UPDATED_PAID_AT)
+            .refundableUntil(UPDATED_REFUNDABLE_UNTIL)
+            .createdAt(UPDATED_CREATED_AT);
 
         restPaymentMockMvc
             .perform(
@@ -1007,7 +1049,7 @@ class PaymentResourceIT {
     @Transactional
     void patchNonExistingPayment() throws Exception {
         long databaseSizeBeforeUpdate = getRepositoryCount();
-        payment.setId(UUID.randomUUID());
+        payment.setId(longCount.incrementAndGet());
 
         // Create the Payment
         PaymentDTO paymentDTO = paymentMapper.toDto(payment);
@@ -1030,7 +1072,7 @@ class PaymentResourceIT {
     @Transactional
     void patchWithIdMismatchPayment() throws Exception {
         long databaseSizeBeforeUpdate = getRepositoryCount();
-        payment.setId(UUID.randomUUID());
+        payment.setId(longCount.incrementAndGet());
 
         // Create the Payment
         PaymentDTO paymentDTO = paymentMapper.toDto(payment);
@@ -1038,7 +1080,7 @@ class PaymentResourceIT {
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         restPaymentMockMvc
             .perform(
-                patch(ENTITY_API_URL_ID, UUID.randomUUID())
+                patch(ENTITY_API_URL_ID, longCount.incrementAndGet())
                     .with(csrf())
                     .contentType("application/merge-patch+json")
                     .content(om.writeValueAsBytes(paymentDTO))
@@ -1053,7 +1095,7 @@ class PaymentResourceIT {
     @Transactional
     void patchWithMissingIdPathParamPayment() throws Exception {
         long databaseSizeBeforeUpdate = getRepositoryCount();
-        payment.setId(UUID.randomUUID());
+        payment.setId(longCount.incrementAndGet());
 
         // Create the Payment
         PaymentDTO paymentDTO = paymentMapper.toDto(payment);
@@ -1079,7 +1121,7 @@ class PaymentResourceIT {
 
         // Delete the payment
         restPaymentMockMvc
-            .perform(delete(ENTITY_API_URL_ID, payment.getId().toString()).with(csrf()).accept(MediaType.APPLICATION_JSON))
+            .perform(delete(ENTITY_API_URL_ID, payment.getId()).with(csrf()).accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent());
 
         // Validate the database contains one less item
